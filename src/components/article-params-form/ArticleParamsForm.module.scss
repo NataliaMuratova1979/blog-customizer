@@ -4,6 +4,7 @@
 	width: 616px;
 	height: 100%;
 	overflow: scroll;
+	background-color: white;
 	transform: translate(-616px);
 	transition: transform 0.5s ease;
 }
@@ -29,4 +30,10 @@
 	display: flex;
 	justify-content: space-between;
 	margin-top: auto;
+}
+
+.customContainer {
+	margin-top: 50px;
+	margin-left: 30px;
+	background-color: white;
 }

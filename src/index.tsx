@@ -18,6 +18,15 @@ const root = createRoot(domNode);
 const App = () => {
 	const [currentArticleState, setCurrentArticleState] =
 		useState<ArticleStateType>(defaultArticleState);
+
+	// Это функциональный компонент App, который использует хук состояния useState для хранения состояния статьи.
+
+	// currentArticleState — это объект, который содержит параметры статьи
+
+	//setCurrentArticleState — функция для обновления этого состояния.
+
+	//defaultArticleState — начальное состояние, которое передается в useState.
+
 	return (
 		<div
 			className={clsx(styles.main)}
