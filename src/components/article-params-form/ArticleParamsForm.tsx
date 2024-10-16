@@ -1,8 +1,7 @@
 import { ArrowButton } from 'components/arrow-button';
 import { Text } from 'components/text';
 import { Button } from 'components/button';
-import { Spacing } from 'components/spacing';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import styles from './ArticleParamsForm.module.scss';
 import clsx from 'clsx';
 import { RadioGroup } from 'components/radio-group';
@@ -15,6 +14,7 @@ import {
 	fontFamilyOptions,
 	backgroundColors,
 	contentWidthArr,
+	defaultArticleState, // Импортируем defaultArticleState
 } from 'src/constants/articleProps';
 import { useOutsideClickClose } from '../select/hooks/useOutsideClickClose';
 import { Separator } from '../separator';
@@ -28,130 +28,116 @@ export const ArticleParamsForm = ({
 	currentArticleState,
 	setCurrentArticleState,
 }: ArticleParamsFormProps) => {
-	const [isOpen, setIsOpen] = useState<boolean>(false); // Управляет открытием и закрытием формы.
-	const rootRef = useRef<HTMLDivElement>(null);
+	const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false); // Создаем состояние isOpen, которое будет хранить булево значение (true/false). По умолчанию оно инициализируется как false. setIsOpen — функция для обновления этого состояния
+
+	const rootRef = useRef<HTMLDivElement>(null); //Создаем реф rootRef, который будет ссылаться на HTML элемент типа div. Изначально он равен null
 
 	const [selectArticleState, setSelectArticleState] =
-		useState<ArticleStateType>(currentArticleState); // Хранит текущее состояние параметров статьи
+		useState<ArticleStateType>(currentArticleState); //Создаем состояние selectArticleState, которое будет хранить текущее состояние статьи. Оно инициализируется значением currentArticleState. setSelectArticleState — функция для обновления этого состояния
 
-	// eslint-disable-next-line @typescript-eslint/no-unused-vars
-	const [initialState, setInitialState] =
-		useState<ArticleStateType>(currentArticleState); //Хранит начальное состояние, чтобы можно было сбросить изменения
+	const initialArticleState = useRef<ArticleStateType>(currentArticleState); //Создаем реф initialArticleState, который будет хранить начальное состояние статьи. Изначально он равен currentArticleState
 
-	// eslint-disable-next-line @typescript-eslint/no-unused-vars
-	const [initialStateOnOpen, setInitialStateOnOpen] =
-		useState(currentArticleState); //Хранит начальное состояние при открытии формы
+	useEffect(() => {
+		initialArticleState.current = currentArticleState;
+		setSelectArticleState(currentArticleState);
+	}, [currentArticleState]); //Используем хук useEffect, который выполняется при изменении currentArticleState. Он обновляет реф initialArticleState текущим состоянием статьи и устанавливает новое значение для selectArticleState.
 
 	const handleChange = (key: keyof ArticleStateType, value: OptionType) => {
 		const newState = { ...selectArticleState, [key]: value };
-		setSelectArticleState(newState);
-		setCurrentArticleState(newState); // обновляет состояние параметров статьи и сразу применяет изменения
+		setSelectArticleState(newState); //Функция handleChange принимает ключ (свойство) из состояния статьи и новое значение. Она создает новый объект состояния, копируя текущее состояние и обновляя указанное свойство, после чего обновляет состояние с помощью setSelectArticleState.
+	};
+
+	const handleApplyChanges = () => {
+		setCurrentArticleState(selectArticleState);
+		setIsMenuOpen(false); //Функция handleApplyChanges применяется для сохранения изменений: она обновляет общее состояние статьи (setCurrentArticleState) и закрывает модальное окно (или другой компонент), устанавливая isOpen в false.
 	};
 
 	const handleArrowButtonClick = () => {
-		setIsOpen((prevState) => {
-			if (!prevState) {
-				setInitialState(selectArticleState); //переключает состояние открытия формы и сохраняет текущее состояние при открытии
-			}
-			return !prevState;
-		});
+		setIsMenuOpen((prevState) => !prevState); //Функция handleArrowButtonClick переключает состояние isOpen: если оно было открыто, станет закрытым, и наоборот.
+	};
+
+	const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+		e.preventDefault(); // предотвращаем стандартное поведение формы
+		handleApplyChanges(); // применяем изменения
+	}; // Функция handleSubmit обрабатывает событие отправки формы. Она предотвращает стандартное поведение браузера (перезагрузку страницы) и вызывает функцию для применения изменений.
+
+	const handleReset = () => {
+		setSelectArticleState(defaultArticleState); // Сброс к defaultArticleState
+		setCurrentArticleState(defaultArticleState); // Сразу обновляем состояние
 	};
 
 	useOutsideClickClose({
-		isOpen,
+		isOpen: isMenuOpen,
 		rootRef,
-		onClose: () => setIsOpen(false),
-		onChange: setIsOpen,
+		onClose: () => setIsMenuOpen(false),
+		onChange: setIsMenuOpen,
 		event: 'mousedown',
-	}); //Используется хук useOutsideClickClose, чтобы закрыть форму, если кликнули вне её области
+	});
 
 	return (
 		<>
-			<ArrowButton onClick={handleArrowButtonClick} isOpen={isOpen} />
+			<ArrowButton onClick={handleArrowButtonClick} isOpen={isMenuOpen} />
 
 			<aside
-				className={clsx(styles.container, isOpen && styles.container_open)}
+				className={clsx(styles.container, isMenuOpen && styles.container_open)}
 				ref={rootRef}>
 				<div className={clsx(styles.customContainer)}>
 					<Text as='h2' size={31} weight={800} uppercase>
 						Задайте параметры
 					</Text>
 				</div>
-				<form
-					className={styles.form}
-					onSubmit={(e) => {
-						e.preventDefault(); // Убираем стандартное поведение формы
-					}}>
+
+				<form className={styles.form} onSubmit={handleSubmit}>
+					{' '}
+					{/* Обработчик сабмита */}
 					<Select
 						title='Шрифт'
 						options={fontFamilyOptions}
 						selected={selectArticleState.fontFamilyOption}
-						placeholder='Выберите цвет'
-						onChange={(option) => handleChange('fontFamilyOption', option)} // Обработчик изменения
+						placeholder='Выберите шрифт'
+						onChange={(option) => handleChange('fontFamilyOption', option)}
 					/>
-
-					<Spacing />
-
 					<RadioGroup
-						name='fontSize' // Уникальное имя для группы радиокнопок
+						name='fontSize'
 						title='Размер шрифта'
 						options={fontSizeOptions}
 						selected={selectArticleState.fontSizeOption}
 						onChange={(value) => handleChange('fontSizeOption', value)}
 					/>
-
-					<Spacing />
-
 					<Select
 						title='Цвет шрифта'
 						options={fontColors}
 						selected={selectArticleState.fontColor}
 						placeholder='Выберите цвет'
-						onChange={(option) => handleChange('fontColor', option)} // Обработчик изменения
+						onChange={(option) => handleChange('fontColor', option)}
 					/>
-
-					<Spacing />
-
 					<Separator />
-
-					<Spacing />
-
 					<Select
 						title='Цвет фона'
 						options={backgroundColors}
 						selected={selectArticleState.backgroundColor}
 						placeholder='Выберите цвет'
-						onChange={(option) => handleChange('backgroundColor', option)} // Обработчик изменения
+						onChange={(option) => handleChange('backgroundColor', option)}
 					/>
-
-					<Spacing />
-
 					<Select
 						title='Ширина контента'
 						options={contentWidthArr}
 						selected={selectArticleState.contentWidth}
-						placeholder='Выберите цвет'
+						placeholder='Выберите ширину'
 						onChange={(option) => handleChange('contentWidth', option)} // Обработчик изменения
 					/>
-
 					<div className={styles.bottomContainer}>
+						{' '}
+						{/* Контейнер для кнопок */}
 						<Button
 							title='Сбросить'
-							type='button'
-							onClick={() => {
-								setSelectArticleState(initialStateOnOpen); // Сброс к начальному состоянию
-								setCurrentArticleState(initialStateOnOpen); // Применение изменений к текущему состоянию статьи
-							}}
-						/>{' '}
+							type='button' // Тип button для сброса
+							onClick={handleReset} // Сбрасываем к начальному состоянию
+						/>
 						<Button
 							title='Применить'
-							type='button'
-							onClick={() => {
-								setCurrentArticleState(selectArticleState); // Применение изменений
-								setIsOpen(false); // Закрытие формы
-							}}
-						/>{' '}
-						{/* Применение изменений и закрытие формы */}
+							type='submit' // Тип submit для применения изменений
+						/>
 					</div>
 				</form>
 			</aside>
